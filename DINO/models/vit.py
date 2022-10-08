@@ -153,6 +153,7 @@ class VisionTransformer(nn.Module):
         norm_layer=nn.LayerNorm,
     ):
         super().__init__()
+        self.embed_dim = embed_dim
         self.patch_embed = PatchEmbed(
             img_size=img_size, patch_size=patch_size, in_dim=in_dim, embed_dim=embed_dim,
         )
