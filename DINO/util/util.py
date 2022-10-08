@@ -4,31 +4,6 @@ import torch
 from torch import nn
 
 
-class MultiCropWrapper(nn.Module):
-
-    def __init__(self, backbone, head):
-        super().__init__()
-        backbone.fc, backbone.head = nn.Identity(), nn.Identity()
-        self.backbone = backbone
-        self.head = head
-
-    def forward(self, x):
-        if not isinstance(x, list):
-            x = [x]
-        idx_crops = torch.cumsum(torch.unique_consecutive(
-            torch.tensor([inp.shape[-1] for inp in x]),
-            return_counts=True,
-        )[1], 0)
-        start_idx, output = 0, torch.empty(0).to(x[0].device)
-        for end_idx in idx_crops:
-            out = self.backbone(torch.cat([x[start_idx: end_idx]]))
-            if isinstance(out, tuple):
-                out = out[0]
-            output = torch.cat([output, out])
-            start_idx = end_idx
-        return self.head(output)
-
-
 def cosine_scheduler(base_value, final_value, epochs, niter_per_epoch, 
                      warmup_epochs=0, start_warmup_value=0):
     warmup_schedule = np.array([])
@@ -56,3 +31,41 @@ def get_params_groups(model):
         else:
             regularized.append(param)
     return [{'params': regularized}, {'params': not_regularized, 'weight_decay': 0.}]
+    
+
+def clip_gradients(model, clip):
+    norms = []
+    for name, p in model.named_parameters():
+        if p.grad is not None:
+            param_norm = p.grad.data.norm(2)
+            norms.append(param_norm.item())
+            clip_coef = clip / (param_norm + 1e-6)
+            if clip_coef < 1:
+                p.grad.data.mul_(clip_coef)
+    return norms
+
+
+def cancel_gradients_last_layer(epoch, model, freeze_last_layer):
+    if epoch >= freeze_last_layer:
+        return
+    for n, p in model.named_parameters():
+        if "last_layer" in n:
+            p.grad = None
+
+
+class AverageMeter(object):
+    def __init__(self):
+        self.avg = 0
+        self.sum = 0
+        self.cnt = 0
+        self.reset()
+
+    def reset(self):
+        self.avg = 0
+        self.sum = 0
+        self.cnt = 0
+
+    def update(self, val, n=1):
+        self.sum += val * n
+        self.cnt += n
+        self.avg = self.sum / self.cnt
