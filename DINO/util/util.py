@@ -4,6 +4,24 @@ import torch
 from torch import nn
 
 
+class AverageMeter(object):
+    def __init__(self):
+        self.avg = 0
+        self.sum = 0
+        self.cnt = 0
+        self.reset()
+
+    def reset(self):
+        self.avg = 0
+        self.sum = 0
+        self.cnt = 0
+
+    def update(self, val, n=1):
+        self.sum += val * n
+        self.cnt += n
+        self.avg = self.sum / self.cnt
+        
+
 def cosine_scheduler(base_value, final_value, epochs, niter_per_epoch, 
                      warmup_epochs=0, start_warmup_value=0):
     warmup_schedule = np.array([])
@@ -51,21 +69,3 @@ def cancel_gradients_last_layer(epoch, model, freeze_last_layer):
     for n, p in model.named_parameters():
         if "last_layer" in n:
             p.grad = None
-
-
-class AverageMeter(object):
-    def __init__(self):
-        self.avg = 0
-        self.sum = 0
-        self.cnt = 0
-        self.reset()
-
-    def reset(self):
-        self.avg = 0
-        self.sum = 0
-        self.cnt = 0
-
-    def update(self, val, n=1):
-        self.sum += val * n
-        self.cnt += n
-        self.avg = self.sum / self.cnt
