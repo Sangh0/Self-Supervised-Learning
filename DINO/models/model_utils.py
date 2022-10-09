@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from timm.models.layers import DropPath, trunc_normal_
 
 
@@ -67,7 +68,7 @@ class MultiCropWrapper(nn.Module):
         )[1], 0)
         start_idx, output = 0, torch.empty(0).to(x[0].device)
         for end_idx in idx_crops:
-            out = self.backbone(torch.cat([x[start_idx: end_idx]]))
+            out = self.backbone(torch.cat(x[start_idx: end_idx]))
             if isinstance(out, tuple):
                 out = out[0]
             output = torch.cat([output, out])
