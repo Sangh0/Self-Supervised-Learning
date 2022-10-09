@@ -1,6 +1,9 @@
+import numpy as np
+from sklearn.model_selection import train_test_split
+
 import torchvision.transforms as transforms
 import torchvision.datasets as dsets
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, SubsetRandomSampler
 
 from augmentation import DataAugmentation
 
@@ -20,7 +23,7 @@ def get_dataset(global_img_size=224,
         local_crops_number=local_crops_number,
     )
 
-    test_transforms_ = transforms.Compose([
+    basic_transforms_ = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
@@ -33,10 +36,24 @@ def get_dataset(global_img_size=224,
         transform=train_transforms_
     )
 
+    train_index, valid_index = train_test_split(
+        np.arange(len(train_data)),
+        test_size=0.2,
+        shuffle=True,
+        stratify=train_data.targets,
+    )
+
     train_loader = DataLoader(
         train_data,
         batch_size=batch_size,
-        shuffle=True,
+        sampler=SubsetRandomSampler(train_index),
+        drop_last=True,
+    )
+
+    valid_loader = DataLoader(
+        train_data,
+        batch_size=batch_size,
+        sampler=SubsetRandomSampler(valid_index),
         drop_last=True,
     )
 
@@ -44,7 +61,7 @@ def get_dataset(global_img_size=224,
         root='./data', 
         train=False, 
         download=True, 
-        transform=test_transforms_
+        transform=basic_transforms_
     )
 
     test_loader = DataLoader(
@@ -56,5 +73,9 @@ def get_dataset(global_img_size=224,
 
     return {
         'train': train_loader,
+        'number_of_train': len(train_index),
+        'valid': valid_loader,
+        'number_of_valid': len(valid_index),
         'test': test_loader,
+        'number_of_test': len(test_data),
     }
