@@ -1,12 +1,56 @@
 import torch
-
 from util.util import AverageMeter, clip_gradients, cancel_gradients_last_layer
+from torch.utils.tensorboard import SummaryWriter
+
+
+def validate_on_epoch(
+    student,
+    teacher,
+    validation_loader,
+    dino_loss,
+    epoch,
+    use_amp,
+    log_step,
+    log_writer=None,
+):
+    batch_loss = AverageMeter()
+    writer = SummaryWriter if log_writer is not None else None
+    
+    for batch, (images, _) in enumerate(validation_loader):
+        batch = len(validation_loader) * epoch + batch
+
+        images = [img.cuda(non_blocking=True) for img in images]
+
+        if use_amp:
+            with torch.cuda.amp.autocast():
+                teacher_output = teacher(images[:2])
+                student_output = student(images)
+                loss = dino_loss(student_output, teacher_output, epoch)
+
+        else:
+            teacher_output = teacher(images[:2])
+            student_output = student(images)
+            loss = dino_loss(student_output, teacher_output, epoch)
+        
+        batch_loss.update(loss, images[0].shape[0])
+
+        if log_step % batch == 0:
+            print(f'\n{" "*10} [Validate Batch {batch+1}/{len(validation_loader)}] {" "*10}'
+                  f'\nvalid loss: {loss:.3f}')
+
+        if writer is not None:
+            writer.add_scalar('Valid/loss', loss, batch)
+
+    return {
+        'val_loss': batch_loss.avg,
+    }
+
 
 
 def train_on_epoch(
     student, 
     teacher, 
-    data_loader, 
+    train_loader, 
     dino_loss, 
     epoch,
     optimizer,
@@ -17,14 +61,16 @@ def train_on_epoch(
     clip_grad=3.,
     freeze_last_layer=1,
     log_step=10,
+    log_writer=None,
 ):
     batch_loss = AverageMeter()
+    writer = SummaryWriter() if log_writer is not None else None
 
     if use_amp:
         scaler = torch.cuda.amp.GradScaler()
 
-    for batch, (images, _) in enumerate(data_loader):
-        batch = len(data_loader) * epoch + batch
+    for batch, (images, _) in enumerate(train_loader):
+        batch = len(train_loader) * epoch + batch
         
         ############ schedule learning rate and weight decay ############
         for i, param_group in enumerate(optimizer.param_groups):
@@ -72,10 +118,20 @@ def train_on_epoch(
             m = momentum_schedule[batch]
             for param_q, param_k in zip(student.module.parameters(), teacher.parameters()):
                 param_k.data.mul_(m).add_((1 - m) * param_q.detach().data)
+        ##################################################################
+
+        ####### write logs and hyperparameters by cosine scheduler #######
+        if writer is not None:
+            writer.add_scalar('Train/loss', loss, batch)
+            writer.add_scalar('hyperparameters/lr', optimizer.param_groups[0]["lr"], batch)
+            writer.add_scalar('hyperparameters/weight_decay', optimizer.param_group["weight_decay"], batch)
+            writer.add_scalar('hyperparameters/momentum', optimizer.param_gruops[0]["momentum"], batch)
+        ##################################################################
 
         if log_step % batch == 0:
-            print(f'\n{" "*20} Train Step {" "*20}'
-                  f'\n[Batch {batch+1}/{len(data_loader)}]'
-                  '   train loss: {loss:.3f}')
+            print(f'\n{" "*10} [Train Batch {batch+1}/{len(train_loader)}] {" "*10}'
+                  f'\ntrain loss: {loss:.3f}')
 
-        return batch_loss.avg
+    return {
+        'train_loss': batch_loss.avg,
+    }
