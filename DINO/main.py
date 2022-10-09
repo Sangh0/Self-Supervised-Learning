@@ -35,7 +35,7 @@ def fit(student, teacher, train_loader, validation_loader, dino_loss,
         train_stats = train_on_epoch(
             student=student,
             teacher=teacher,
-            data_loader=train_loader,
+            train_loader=train_loader,
             dino_loss=dino_loss,
             epoch=epoch,
             optimizer=optimizer,
@@ -157,12 +157,11 @@ def get_args_parser():
     parser.add_argument('--local_crops_number', type=float, default=8,
                         help='the number of multi cropping for training')
     
-
     # etc paramters
     parser.add_argument('--device', type=str, 
                         default='cuda' if torch.cuda.is_available() else 'cpu',
                         help='set device for faster model training')
-    return 
+    return parser
 
 
 def main(args):
@@ -227,6 +226,7 @@ def main(args):
     ).to(device)
     
     print(f'\n{args.model} student and teacher networks ready...')
+    # summary(student, (3, args.global_img_size, args.global_img_size), device='cpu')
 
     dino_loss = DINOLoss(
         out_dim=args.out_dim,
@@ -246,13 +246,15 @@ def main(args):
         optimizer = optim.SGD(params_groups, lr=0, momentum=0.9)
     else:
         raise ValueError(f'{args.optimizer} does not exist')
+    
+    print(f'dino loss and optimizer {args.optimizer} ready...')
 
     lr_schedule = cosine_scheduler(
         base_value=args.lr,
         final_value=args.min_lr,
         epochs=args.epochs,
         niter_per_epoch=len(train_loader),
-        warmup_epochs=args.warmup_epochs,
+        warmup_epochs=args.warmup_epoch,
     )
 
     wd_schedule = cosine_scheduler(
