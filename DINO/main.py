@@ -1,3 +1,4 @@
+import os
 import time
 import argparse
 from tqdm.auto import tqdm
@@ -9,27 +10,32 @@ from torchsummary import summary
 from util.dataset import get_dataset
 from util.loss import DINOLoss
 from util.util import get_params_groups, cosine_scheduler
+from util.callback import CheckPoint
 from models.model_utils import MultiCropWrapper, DINOHead
 from models.resnet import ResNet50
 from models import vit
-from train import train_on_epoch
+from train import train_on_epoch, validate_on_epoch
 
 
-def fit(student, teacher, data_loader, dino_loss, epochs,
-          optimizer, lr_schedule, wd_schedule, momentum_schedule,
-          use_amp, clip_grad, freeze_last_layer, log_step=300):
+def fit(student, teacher, train_loader, validation_loader, dino_loss, 
+        epochs, optimizer, lr_schedule, wd_schedule, momentum_schedule, 
+        use_amp, clip_grad, freeze_last_layer, check_point, 
+        train_log_step=300, valid_log_step=100, log_writer=True):
     
+    if check_point:
+        cp = CheckPoint(verbose=True)
+
     print('Start Model Training...!')
-    start_time = time.time()
+    start_training = time.time()
     pbar = tqdm(range(epochs), total=int(epochs))
     for epoch in pbar:
-        
-        init_time = time.time()
 
-        loss = train_on_epoch(
+        start_epoch = time.time()
+
+        train_stats = train_on_epoch(
             student=student,
             teacher=teacher,
-            data_loader=data_loader,
+            data_loader=train_loader,
             dino_loss=dino_loss,
             epoch=epoch,
             optimizer=optimizer,
@@ -39,17 +45,51 @@ def fit(student, teacher, data_loader, dino_loss, epochs,
             use_amp=use_amp,
             clip_grad=clip_grad,
             freeze_last_layer=freeze_last_layer,
-            log_step=log_step,
+            log_step=train_log_step,
+            log_writer=log_writer,
         )
 
-        end_time = time.time()
-    
-    return
+        train_loss = train_stats['train_loss']
+
+        valid_stats = validate_on_epoch(
+            student=student,
+            teacher=teacher,
+            validation_loader=validation_loader,
+            dino_loss=dino_loss,
+            epoch=epoch,
+            use_amp=use_amp,
+            log_step=valid_log_step,
+            log_writer=log_writer,
+        )
+
+        valid_loss = valid_stats['val_loss']
+
+        end_epoch = time.time()
+
+        print(f'\n{"="*40} Epoch {epoch+1}/{epochs} {"="*40}'
+              f'\ntime : {end_epoch-start_epoch:.2f}s'
+              f'   train average loss : {train_loss:.3f}'
+              f'\n   valid average loss : {valid_loss:.3f}')
+        print(f'\n{"="*100}')
+
+        if check_point:
+            os.makedirs('./weights', exist_ok=True)
+            cp(valid_loss, teacher, f'./weights/teacher_{epoch}.pt')
+            cp(valid_loss, student, f'./weights/student_{epoch}.pt')
+
+    end_training = time.time()
+    print(f'Total Training Time: {end_training-start_training:.2f}s')
+
+    return {
+        'teacher': teacher,
+        'student': student,
+    }
 
 
 def get_args_parser():
     parser = argparse.ArgumentParser(description='DINO', add_help=False)
-    # hyperparameters
+
+    # hyperparameters and training parameters
     parser.add_argument('--batch_size', type=int, default=32, 
                         help='a batch size')
     parser.add_argument('--epochs', type=int, default=100,
@@ -67,6 +107,20 @@ def get_args_parser():
     parser.add_argument('--optimizer', type=str, default='adamw',
                         choices=['adamw', 'adam', 'sgd'],
                         help='optimizer for training model')
+    parser.add_argument('--use_amp', type=bool, default=True,
+                        help='using half precision float on training')
+    parser.add_argument('--clip_grad', type=float, default=3.0,
+                        help='gradient clipping')
+    parser.add_argument('--freeze_last_layer', type=int, default=1,
+                        help='freeze last layer of model')
+    parser.add_argument('--check_point', type=bool, default=True,
+                        help='save weights of each models')
+    parser.add_argument('--train_log_step', type=int, default=300,
+                        help='print log of training')
+    parser.add_argument('--valid_log_step', type=int, default=100,
+                        help='print log of validating')
+    parser.add_argument('--log_writer', type=bool, default=True,
+                        help='write log of training and validating in tensorboard')
     
     # model paramters
     parser.add_argument('--model', type=str, default='vit_t',
@@ -112,6 +166,9 @@ def get_args_parser():
 
 
 def main(args):
+    device = args.device
+    print(f'device is {args.device}...')
+
     dataset = get_dataset(
         global_img_size=args.global_img_size,
         local_img_size=args.local_img_size,
@@ -121,8 +178,10 @@ def main(args):
         batch_size=args.batch_size,
     )
 
-    train_loader, test_loader = dataset['train'], dataset['test']
-    print('data loaders ready...')
+    train_loader, train_len = dataset['train'], dataset['number_of_train']
+    valid_loader, valid_len = dataset['valid'], dataset['number_of_valid']
+
+    print(f'train {train_len}, valid {valid_len} data ready...')
 
     if 'resnet' in args.model:
         student = ResNet50()
@@ -156,7 +215,8 @@ def main(args):
             use_bn=args.use_bn_in_head,
             norm_last_layer=args.norm_last_layer,
         )
-    )
+    ).to(device)
+
     teacher = MultiCropWrapper(
         teacher,
         DINOHead(
@@ -164,8 +224,9 @@ def main(args):
             out_dim=args.out_dim,
             use_bn=args.use_bn_in_head,
         )
-    )
-    print('student and teacher networks ready...')
+    ).to(device)
+    
+    print(f'\n{args.model} student and teacher networks ready...')
 
     dino_loss = DINOLoss(
         out_dim=args.out_dim,
@@ -174,7 +235,7 @@ def main(args):
         teacher_temp=args.teacher_temp,
         warmup_teacher_temp_epochs=args.warmup_teacher_temp_epochs,
         epochs=args.epochs,
-    )
+    ).to(device)
 
     params_groups = get_params_groups(student)
     if args.optimizer == 'adamw':
@@ -209,3 +270,27 @@ def main(args):
     )
     print('schedulers of learning rate, weight decay and momentum ready')
 
+    history = fit(
+        student=student,
+        teacher=teacher,
+        train_loader=train_loader,
+        validation_loader=valid_loader,
+        dino_loss=dino_loss,
+        epochs=args.epochs,
+        optimizer=optimizer,
+        lr_schedule=lr_schedule,
+        wd_schedule=wd_schedule,
+        momentum_schedule=momentum_schedule,
+        use_amp=args.use_amp,
+        clip_grad=args.clip_grad,
+        freeze_last_layer=args.freeze_last_layer,
+        check_point=args.check_point,
+        train_log_step=args.train_log_step,
+        valid_log_step=args.valid_log_step,
+        log_writer=args.log_writer,
+    )
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser('DINO', parents=[get_args_parser()])
+    args = parser.parse_args()
+    main(args)
