@@ -29,8 +29,8 @@ class DINOLoss(nn.Module):
             np.ones(epochs - warmup_teacher_temp_epochs) * teacher_temp
         ))
 
-    def forward(self, student_out, teacher_output, epoch):
-        student_out = student_out / self.student_temp
+    def forward(self, student_output, teacher_output, epoch):
+        student_out = student_output / self.student_temp
         student_out = student_out.detach().chunk(2)
 
         temp = self.teacher_temp_schedule[epoch]
