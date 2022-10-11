@@ -1,50 +1,6 @@
 import torch
-from util.util import AverageMeter, clip_gradients, cancel_gradients_last_layer
+from .util.util import AverageMeter, clip_gradients, cancel_gradients_last_layer
 from torch.utils.tensorboard import SummaryWriter
-
-
-def validate_on_epoch(
-    student,
-    teacher,
-    validation_loader,
-    dino_loss,
-    epoch,
-    use_amp,
-    log_step,
-    log_writer=None,
-):
-    batch_loss = AverageMeter()
-    writer = SummaryWriter if log_writer is not None else None
-    
-    for batch, (images, _) in enumerate(validation_loader):
-        batch = len(validation_loader) * epoch + batch
-
-        images = [img.cuda(non_blocking=True) for img in images]
-
-        if use_amp:
-            with torch.cuda.amp.autocast():
-                teacher_output = teacher(images[:2])
-                student_output = student(images)
-                loss = dino_loss(student_output, teacher_output, epoch)
-
-        else:
-            teacher_output = teacher(images[:2])
-            student_output = student(images)
-            loss = dino_loss(student_output, teacher_output, epoch)
-        
-        batch_loss.update(loss, images[0].shape[0])
-
-        if log_step % batch == 0:
-            print(f'\n{" "*10} [Validate Batch {batch+1}/{len(validation_loader)}] {" "*10}'
-                  f'\nvalid loss: {loss:.3f}')
-
-        if writer is not None:
-            writer.add_scalar('Valid/loss', loss, batch)
-
-    return {
-        'val_loss': batch_loss.avg,
-    }
-
 
 
 def train_on_epoch(
@@ -134,4 +90,47 @@ def train_on_epoch(
 
     return {
         'train_loss': batch_loss.avg,
+    }
+
+
+def validate_on_epoch(
+    student,
+    teacher,
+    validation_loader,
+    dino_loss,
+    epoch,
+    use_amp,
+    log_step,
+    log_writer=None,
+):
+    batch_loss = AverageMeter()
+    writer = SummaryWriter if log_writer is not None else None
+    
+    for batch, (images, _) in enumerate(validation_loader):
+        batch = len(validation_loader) * epoch + batch
+
+        images = [img.cuda(non_blocking=True) for img in images]
+
+        if use_amp:
+            with torch.cuda.amp.autocast():
+                teacher_output = teacher(images[:2])
+                student_output = student(images)
+                loss = dino_loss(student_output, teacher_output, epoch)
+
+        else:
+            teacher_output = teacher(images[:2])
+            student_output = student(images)
+            loss = dino_loss(student_output, teacher_output, epoch)
+        
+        batch_loss.update(loss, images[0].shape[0])
+
+        if log_step % batch == 0:
+            print(f'\n{" "*10} [Validate Batch {batch+1}/{len(validation_loader)}] {" "*10}'
+                  f'\nvalid loss: {loss:.3f}')
+
+        if writer is not None:
+            writer.add_scalar('Valid/loss', loss, batch)
+
+    return {
+        'val_loss': batch_loss.avg,
     }
