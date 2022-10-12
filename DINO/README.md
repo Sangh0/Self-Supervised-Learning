@@ -9,4 +9,4 @@
 <img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/DINO/figure/figure1.png?raw=true" width=700>  
 
 - Supervised VS Self-Supervised  
-<img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/DINO/figure/figure4.png?raw=true" width=500>
+<img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/DINO/figure/figure4.png?raw=true" width=500>  
