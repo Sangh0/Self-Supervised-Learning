@@ -6,7 +6,7 @@
 
 ### The main ideas of MoCO  
 - idea  
-<img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/MoCo/figure/figure2.png?raw=true">  
+<img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/MoCo/figure/figure1.png?raw=true">  
 
 - algorithm  
 <img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/MoCo/figure/algorithm1.png?raw=true">  
