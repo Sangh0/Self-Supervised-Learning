@@ -177,7 +177,7 @@ class TrainMoCo(object):
 def main(args):
 
     train_transforms_ = transforms.Compose([
-        transforms.RandomResizedCrop(32, scale=(0.2, 1.)),
+        transforms.RandomResizedCrop(224, scale=(0.2, 1.)),
         transforms.RandomGrayscale(p=0.2),
         transforms.ColorJitter(0.4, 0.4, 0.4, 0.4),
         transforms.RandomHorizontalFlip(),
