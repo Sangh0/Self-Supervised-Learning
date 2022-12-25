@@ -42,18 +42,3 @@ def data_loader(transforms_, root='cifar10', subset='train',
     )
 
     return dataloader
-
-
-train_transforms_ = transforms.Compose([
-    transforms.RandomResizedCrop(32, scale=(0.2, 1.)),
-    transforms.RandomGrayscale(p=0.2),
-    transforms.ColorJitter(0.4, 0.4, 0.4, 0.4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-])
-
-test_transforms_ = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-])
