@@ -282,6 +282,6 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser('MoCo Training', parents=[get_args_parser()])
+    parser = argparse.ArgumentParser('Linear Classification Training', parents=[get_args_parser()])
     args = parser.parse_args()
     main(args)
