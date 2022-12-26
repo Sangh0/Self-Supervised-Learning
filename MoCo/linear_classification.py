@@ -64,6 +64,7 @@ class Net(nn.Module):
         x = self.classifier(x)
         return x
 
+
 class TrainModel(object):
 
     def __init__(
