@@ -9,7 +9,7 @@
 <img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/MoCo/figure/figure1.png?raw=true" width=600>  
 
 - algorithm  
-<img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/MoCo/figure/algorithm1.png?raw=true">  
+<img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/MoCo/figure/algorithm1.png?raw=true" width=500>  
 
 
 ### Training MoCo with CIFAR10 dataset
