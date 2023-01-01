@@ -7,10 +7,10 @@
 
 ### The ideas of SimCLR  
 - structure:  
-<img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/SimCLR/figure/figure2.png?raw=true", width=500>
+<img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/SimCLR/figure/figure2.png?raw=true" width=500>
 
 - algorithm:  
-<img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/SimCLR/figure/algorithm.png?raw=true", width=500>
+<img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/SimCLR/figure/algorithm.png?raw=true" width=500>
 
 ### Training  
 ```python
