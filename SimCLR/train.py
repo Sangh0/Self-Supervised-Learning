@@ -56,7 +56,8 @@ class TrainSimCLR(object):
 
     def __init__(
         self,
-        feature_dim=128,
+        encoder_projection: bool=False,
+        feature_dim: int=128,
         lr: float=1e-3,
         weight_decay: float=1e-5,
         epochs: int=300,
@@ -77,7 +78,7 @@ class TrainSimCLR(object):
         self.device = torch.device('cuda' if torch.cuda.is_availabel() else 'cpu')
         self.logger.info(f'device is {self.device}')
 
-        self.model = ResNet50(feature_dim=feature_dim).to(self.device)
+        self.model = ResNet50(feature_dim=feature_dim, proj=encoder_projection).to(self.device)
 
         self.loss_func = NTXentLoss(
             batch_size, 
@@ -139,8 +140,8 @@ class TrainSimCLR(object):
             x_i = x_i.to(self.device)
             x_j = x_j.to(self.device)
 
-            outputs = self.model(x_i, x_j)
-            out_i, out_j = outputs['encoder'][0], outputs['encoder'][1]
+            out_i = self.model(x_i)
+            out_j = self.model(x_j)
             loss = self.loss_func(out_i, out_j)
             total_loss += loss.item()
 
