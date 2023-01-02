@@ -59,7 +59,10 @@ class CIFAR10Pair(dsets.CIFAR10):
 
 def get_dataloader(transforms_, root='cifar10', subset='train',
                    download=True, batch_size=32, shuffle=True, drop_last=True):
-    
+
+    assert subset in ('trian', 'valid', 'test'), \
+        f'{subset} does not exists'
+
     subset = True if subset == 'train' else False
 
     dataset = CIFAR10Pair(
