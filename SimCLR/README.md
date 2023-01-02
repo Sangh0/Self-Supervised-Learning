@@ -16,3 +16,13 @@
 ```
 $ python train.py --feature_dim 128 --temperature 0.05 --lr 1e-2 -- warmup_epoch 10 --batch_size 32
 ```
+
+### Linear Classification with the weight trained SimCLR
+```
+$ python linear_evaluation.py --num_classes 10 --pretrained_weight_path {a weight file trained SimCLR} --epochs 100
+```
+
+### Testing
+```
+$ python test.py --pretrained_weight {a weight file trained linear model} --num_classes 10 --img_size 224
+```
