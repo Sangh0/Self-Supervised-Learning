@@ -3,7 +3,7 @@
 ### Implementation or Review Paper List
 - [x] [MoCo (CVPR 2020)](https://github.com/Sangh0/Self-Supervised-Learning/tree/main/MoCo)  
 - [x] [SimCLR (ICML 2020)](https://github.com/Sangh0/Self-Supervised-Learning/tree/main/SimCLR)
-- [ ] [BYOL (NeurlPS 2020)](https://github.com/Sangh0/Self-Supervised-Learning/tree/main/BYOL)
+- [x] [BYOL (NeurlPS 2020)](https://github.com/Sangh0/Self-Supervised-Learning/tree/main/BYOL)
 - [x] [DINO (ICCV 2021)](https://github.com/Sangh0/Self-Supervised-Learning/tree/main/DINO)  
 
 ### Self-Supervised Learning?  
