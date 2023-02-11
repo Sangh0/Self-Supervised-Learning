@@ -9,3 +9,8 @@
 
 - algorithm  
 <img src = "https://github.com/Sangh0/Self-Supervised-Learning/blob/main/BYOL/figures/algorithm.png?raw=true" width=600>  
+
+### Training
+```
+python3 ./train.py --batch_size 512 --epochs 1000 --img_size 224 --resnet_type resnet50 --tau 0.996
+```
