@@ -5,6 +5,8 @@
 - [x] [SimCLR (ICML 2020)](https://github.com/Sangh0/Self-Supervised-Learning/tree/main/SimCLR)
 - [x] [BYOL (NeurlPS 2020)](https://github.com/Sangh0/Self-Supervised-Learning/tree/main/BYOL)
 - [x] [DINO (ICCV 2021)](https://github.com/Sangh0/Self-Supervised-Learning/tree/main/DINO)  
+- [x] [CoCa (arXiv 2022)](https://github.com/Sangh0/Self-Supervised-Learning/tree/main/CoCa)  
+
 
 ### Self-Supervised Learning?  
 - SSL is proposed for utilizing unlabeled data  
